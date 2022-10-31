@@ -1,3 +1,10 @@
+"""
+KAKO SAM DOSAO DO RJESENJA:
+generirao sam tocke i lica pomocu skripte, zatim sam generirani obj ubacio u blender,
+koji je za mene izracunao normale. Onda sam samo ponovno exportao obj datoteku, te maknuo materijal
+
+"""
+
 import math
 
 class Vector:
@@ -31,7 +38,7 @@ class Circle:
         self.vertices.append(Vector(x, z, y))
         #print(Vector(x, y, z))
         self.generateCircle((angle + self.res), z)
-
+    
     def generateNormals(self, angle, defaultVectorGenerated=False):
         if angle == 360:
             return
@@ -91,7 +98,7 @@ class Cylinder:
         with open(fileName, "w") as f:
             for v in self.vertices:
                 f.write(f"v {v.x} {v.y} {v.z}\n")
-            #normals are calculated in blender
+            #normals are calculated in blender instead
             """
             for n in self.normals:
                 f.write(f"vn {n.x} {n.y} {n.z}\n")
