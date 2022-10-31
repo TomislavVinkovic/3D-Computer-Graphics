@@ -19,7 +19,7 @@ class Vector:
 #multiple objects
 
 class Circle:
-    def __init__(self, dots = 36, z=0):
+    def __init__(self, dots = 31, z=0):
         self.dots = dots
         self.res = 360/self.dots
         self.vertices = []
@@ -32,15 +32,17 @@ class Circle:
 
     def generateCircle(self, angle, z):
         if angle >= 360:
+            print("returning")
             return
         x = math.cos((angle / 360)*2*self.radius*math.pi)
         y = math.sin((angle / 360)*2*self.radius*math.pi)
         self.vertices.append(Vector(x, z, y))
         #print(Vector(x, y, z))
+        print(angle)
         self.generateCircle((angle + self.res), z)
     
     def generateNormals(self, angle, defaultVectorGenerated=False):
-        if angle == 360:
+        if angle >= 360:
             return
         #hardkodirane normale
         x = math.cos((angle / 360)*2*self.radius*math.pi)
