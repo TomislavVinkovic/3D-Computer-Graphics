@@ -1,8 +1,7 @@
 """
 KAKO SAM DOSAO DO RJESENJA:
-generirao sam tocke i lica pomocu skripte, zatim sam generirani obj ubacio u blender,
+generirao sam tocke i lica pomocu skripte, i spremio ih u cilindar.obj. Zatim sam generirani obj ubacio u blender,
 koji je za mene izracunao normale. Onda sam samo ponovno exportao obj datoteku, te maknuo materijal
-
 """
 
 import math
@@ -15,11 +14,8 @@ class Vector:
     def __str__(self):
         return str((self.x,self.y,self.z))
 
-#writeout function that i will use for
-#multiple objects
-
 class Circle:
-    def __init__(self, dots = 31, z=0):
+    def __init__(self, dots = 20, z=0):
         self.dots = dots
         self.res = 360/self.dots
         self.vertices = []
@@ -27,24 +23,21 @@ class Circle:
         self.faces = []
         self.radius = 1 #jedinicna kruznica
         self.generateCircle(0, z)
-        self.generateNormals(0)
+        #self.generateNormals(0)
         self.generateFaces()
 
     def generateCircle(self, angle, z):
         if angle >= 360:
-            print("returning")
             return
         x = math.cos((angle / 360)*2*self.radius*math.pi)
         y = math.sin((angle / 360)*2*self.radius*math.pi)
         self.vertices.append(Vector(x, z, y))
-        #print(Vector(x, y, z))
-        print(angle)
         self.generateCircle((angle + self.res), z)
     
     def generateNormals(self, angle, defaultVectorGenerated=False):
         if angle >= 360:
             return
-        #hardkodirane normale
+        #hardkodirane normale, koje nisu radile
         x = math.cos((angle / 360)*2*self.radius*math.pi)
         y = math.sin((angle / 360)*2*self.radius*math.pi)
         self.normals.append(Vector(y,0,x))
@@ -54,7 +47,7 @@ class Circle:
     def generateFaces(self):
         n = len(self.vertices)
         for i in range(1, n-1):
-            #i am increasing the indices by one because indices in obj start from 1, not 0
+            #i am increasing the indices by one because indices 		in obj start from 1, not 0
             self.faces.append((1, i+1, i+2))
 
     def writeOut(self, fileName):
@@ -67,7 +60,7 @@ class Circle:
             
             i = 1
             for face in self.faces:
-                f.write(f"f {face[0]}//1 {face[1]}//1 {face[2]}//1\n")
+                f.write(f"f {face[0]} {face[1]} {face[2]}\n")
                 i+=1
 
     def __str__(self):
@@ -78,9 +71,9 @@ class Cylinder:
     def __init__(self, upperBase: Circle, lowerBase: Circle):
         self.upperBase = upperBase
         self.lowerBase = lowerBase
-        self.vertices = upperBase.vertices + lowerBase.vertices #concatenate their vertices and remove duplicates
-        self.normals = upperBase.normals + lowerBase.normals #same for normals
-        self.normals.insert(0, Vector(1, 0, 0))
+        self.vertices = upperBase.vertices + lowerBase.vertices #concatenate their vertices 
+        #self.normals = upperBase.normals + lowerBase.normals #same for normals
+        #self.normals.insert(0, Vector(1, 0, 0))
         #self.faces = upperBase.faces + lowerBase.faces #and faces...
         faces_length = len(self.lowerBase.faces) + len(self.upperBase.faces)
         self.faces = [] #side faces
@@ -106,11 +99,11 @@ class Cylinder:
                 f.write(f"vn {n.x} {n.y} {n.z}\n")
             """
             for face in base_faces:
-                f.write(f"f {face[0]}//1 {face[1]}//1 {face[2]}//1\n")
+                f.write(f"f {face[0]} {face[1]} {face[2]}\n")
             i=2
             j=1
             for face in self.faces:
-                f.write(f"f {face[0]}//{i} {face[1]}//{i} {face[2]}//{i}\n")
+                f.write(f"f {face[0]} {face[1]} {face[2]}\n")
                 if j==2:
                     i+=1
                     j=1
@@ -120,11 +113,11 @@ class Cylinder:
 
 
 if __name__ == "__main__":
-    upperBase = Circle()
-    lowerBase = Circle(z=2)
+    upperBase = Circle(dots = 60)
+    lowerBase = Circle(dots = 60, z=2)
     c = Cylinder(upperBase=upperBase, lowerBase=lowerBase)
     #print(c.faces)
     #print(upperBase.faces)
-    c.writeOut("testCylinder2.obj")
+    c.writeOut("cilindar.obj")
     #c.writeOut("circle.obj")
     
