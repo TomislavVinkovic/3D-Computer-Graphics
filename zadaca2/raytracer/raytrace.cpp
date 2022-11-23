@@ -40,19 +40,20 @@ bool scene_intersect(const Ray &ray, const Objects &objs, Material &hit_material
     float best_dist = numeric_limits<float>::max();
     float dist = numeric_limits<float>::max();
     
-    Vec3f normal;
+    Vec3f normal{};
     
     for (auto obj : objs)
     {
         if (obj->ray_intersect(ray, dist, normal) && dist < best_dist)
         {
+            cout << "ray intersect!" << endl;
             best_dist = dist;             // udaljenost do sfere
             hit_material = obj->material; // materijal pogodjene sfere
             hit_normal = normal;          // normala na pogodjeni objekt
             hit_point = ray.origin + ray.direction * dist; // pogodjena tocka
         }
     }
-    
+    //cout << best_dist << endl;
     return best_dist < 1000;
 }
 
@@ -63,6 +64,7 @@ Vec3f cast_ray(const Ray &ray, const Objects &objs, const Lights &lights)
     Vec3f hit_point;
     Material hit_material;
     
+    //ako sa zrakom bas potpuno promasimo
     if (!scene_intersect(ray, objs, hit_material, hit_point, hit_normal))
     {
         return Vec3f(0.8, 0.8, 1); // vrati boju pozadine
@@ -98,7 +100,7 @@ Vec3f cast_ray(const Ray &ray, const Objects &objs, const Lights &lights)
             }
             Ray shadow_ray(shadow_origin, light_dir);
             
-            // provjeri hoce li zraka shadow_ray presijecatiobjekt
+            // provjeri hoce li zraka shadow_ray presijecati objekt
             if (scene_intersect(shadow_ray, objs, shadow_hit_material, shadow_hit_point, shadow_hit_normal))
             {
                 // zraka sijece neki objekt 
@@ -180,24 +182,24 @@ int main()
     Material green(Vec3f(0, 0.5, 0));
     green.specular_coef = 1;
     green.phong_exp = 1000;
-    
     Material blue(Vec3f(0, 0, 1));
-    
     Material grey(Vec3f(0.5, 0.5, 0.5));
-
-    
-    // definiraj objekte u sceni
-    Sphere s1(Vec3f(-3,    0,   -16), 2, red);
-    Sphere s2(Vec3f(-1.0, -1.5, -12), 2, green);
-    Sphere s3(Vec3f( 1.5, -0.5, -18), 3, blue);
-    Sphere s4(Vec3f( 7,    5,   -18), 4, grey);
-    Objects objs = { &s1, &s2, &s3, &s4 };
     
     // definiraj svjetla
     Light l1 = Light(Vec3f(-20, 20, 20), 1500);
     Light l2 = Light(Vec3f(20, 30, 20), 1800);
     Lights lights = { &l1, &l2 };
-    
+
+    //Cuboid surface(Vec3f(-25, -5.1, -30), Vec3f(25, -5, -9), green);
+
+    //Sphere sphere1(Vec3f(-1.0, -3.5, -12), 1.5, green);
+    //Sphere sphere2(Vec3f(3, -4.5, -11.5), 0.5, blue);
+    //Sphere sphere3(Vec3f(-2.0, -4.5, -18.5), 3.0, blue);
+    Cuboid cuboid(Vec3f(1, -5, -15), Vec3f(3, -3, -13), red);
+
+    //Objects objs {&sphere1, &sphere2, &sphere3,  &cuboid};
+    Objects objs {&cuboid};
+
     draw_image(objs, lights);
     return 0;
 }
