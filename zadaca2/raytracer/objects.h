@@ -57,36 +57,17 @@ struct Sphere : Object
 };
 
 struct Cuboid : public Object {
-
-    private:
-        bool getIntersection( float fDst1, float fDst2, const Vec3f& P1, const Vec3f& P2, Vec3f &Hit) const {
-            if ( (fDst1 * fDst2) >= 0.0f) return 0;
-            if ( fDst1 == fDst2) return 0; 
-            Hit = P1 + (P2-P1) * ( -fDst1/(fDst2-fDst1) );
-            return 1;
+    Vec3f min;
+    Vec3f max;
+    Cuboid(const Vec3f& min, const Vec3f& max, const Material& material) 
+        : min{min}, max{max} {
+            this->material = material;
         }
-        bool inBox(Vec3f& Hit, Vec3f& B1, Vec3f& B2, int Axis) const {
-            if ( Axis==1 && Hit.z > B1.z && Hit.z < B2.z && Hit.y > B1.y && Hit.y < B2.y) return true;
-            if ( Axis==2 && Hit.z > B1.z && Hit.z < B2.z && Hit.x > B1.x && Hit.x < B2.x) return true;
-            if ( Axis==3 && Hit.x > B1.x && Hit.x < B2.x && Hit.y > B1.y && Hit.y < B2.y) return true;
-            return 0;
-        }
-
-    public:
-        Vec3f min;
-        Vec3f max;
-        float volume;
-        Material material;
-        Cuboid(const Vec3f& min, const Vec3f& max, const Material& material) 
-            : min{min}, max{max}, material{material} {
-                float d = (max - min).norm();
-                volume = d*d*d*sqrt(3)/9; //volumen kuboida
-            }
 
     bool ray_intersect(const Ray &ray, float &t, Vec3f &normal) const {
 
         float tn = numeric_limits<float>::min();
-        float tf = numeric_limits<float>::min();
+        float tf = numeric_limits<float>::max();
 
         float minX = std::min(min.x, max.x);
         float minY = std::min(min.y, max.y);
@@ -95,54 +76,91 @@ struct Cuboid : public Object {
         float maxY = std::max(min.y, max.y);
         float maxZ = std::max(min.z, max.z);
 
-        auto p = ray.origin;
-        auto d = ray.direction;
+        Vec3f p = ray.origin;
+        Vec3f d = ray.direction;
 
         //osigurac za potencijalno dijeljenje s 0
         if(d.x == 0) {
+            //cout << "dx je 0" << endl;
             if(p.x < minX || p.x > maxX) return false;
         }
-        float txmin = (minX - p.x)/d.x;
-        float txmax = (maxX - p.x)/d.x;
-        if(txmin > txmax) swap(txmin, txmax);
 
-        tn = std::max(tn, txmin);
-        tf = std::min(tf, txmax);
-        if(tn > tf || tf < 0) {
-            return false;
+        else {
+            float txmin = (minX - p.x)/d.x;
+            float txmax = (maxX - p.x)/d.x;
+            if(txmin > txmax) swap(txmin, txmax);
+
+            tn = std::max(tn, txmin);
+            tf = std::min(tf, txmax);
+            if(tn > tf || tf < 0) {
+                //cout << "Problem kod tx" << endl;
+                return false;
+            }
         }
         t = tn;
-        
         /////////////////////////////
         if(d.y == 0) {
-            if(p.y < min.y || p.y > max.y) return false;
+            //cout << "dy je 0" << endl;
+            if(p.y < minY || p.y > maxY) return false;
         }
-        float tymin = (min.y - p.y)/d.y;
-        float tymax = (max.y - p.y)/d.y;
-        if(tymin > tymax) swap(tymin, tymax);
+        else {
+            float tymin = (minY - p.y)/d.y;
+            float tymax = (maxY - p.y)/d.y;
+            if(tymin > tymax) swap(tymin, tymax);
 
-        tn = std::max(tn, tymin);
-        tf = std::min(tf, tymax);
-        if(tn > tf || tf < 0) {
-            return false;
+            tn = std::max(tn, tymin);
+            tf = std::min(tf, tymax);
+            if(tn > tf || tf < 0) {
+                //cout << "Problem kod ty" << endl;
+                return false;
+            }
         }
         t = tn;
 
         /////////////////////////////
         if(d.z == 0) {
-            if(p.z < min.z || p.z > max.z) return false;
+            //cout << "dz je 0" << endl;
+            if(p.z < minZ || p.z > maxZ) return false;
         }
-        float tzmin = (min.z - p.z)/d.z;
-        float tzmax = (max.z - p.z)/d.z;
-        if(tzmin > tzmax) swap(tzmin, tzmax);
+        else {
+            float tzmin = (minZ - p.z)/d.z;
+            float tzmax = (maxZ - p.z)/d.z;
+            if(tzmin > tzmax) swap(tzmin, tzmax);
 
-        tn = std::max(tn, tzmin);
-        tf = std::min(tf, tzmax);
-        if(tn > tf || tf < 0) {
-            return false;
+            tn = std::max(tn, tzmin);
+            tf = std::min(tf, tzmax);
+            if(tn > tf || tf < 0) {
+                //cout << "Problem kod tz" << endl;
+                return false;
+            }
         }
         t = tn;
 
+        Vec3f hit_point = p + d*t;
+        
+        //racunanje normala
+        const float bias = 1.00001f;
+        Vec3f c = {
+            (min.x + max.x) / 2.0f,
+            (min.y + max.y) / 2.0f,
+            (min.z + max.z) / 2.0f
+        };
+
+        Vec3f hit_minus_c = hit_point - c;
+        float dx = abs(min.x - max.x) / 2.0f;
+        float dy = abs(min.y - max.y) / 2.0f;
+        float dz = abs(min.z - max.z) / 2.0f;
+
+        int nx = static_cast<int>( hit_minus_c.x / dx * bias );
+        int ny = static_cast<int>( hit_minus_c.y / dy * bias );
+        int nz = static_cast<int>( hit_minus_c.z / dz * bias );
+        normal = {
+            static_cast<float>(nx),
+            static_cast<float>(ny),
+            static_cast<float>(nz)
+        };
+        normal.normalize();
+       
         return true;
     }
 };

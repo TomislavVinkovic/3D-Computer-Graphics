@@ -41,16 +41,15 @@ bool scene_intersect(const Ray &ray, const Objects &objs, Material &hit_material
     float dist = numeric_limits<float>::max();
     
     Vec3f normal{};
-    
     for (auto obj : objs)
     {
         if (obj->ray_intersect(ray, dist, normal) && dist < best_dist)
         {
-            cout << "ray intersect!" << endl;
             best_dist = dist;             // udaljenost do sfere
-            hit_material = obj->material; // materijal pogodjene sfere
+            hit_material = obj->material; // materijal pogodjenog objekta
             hit_normal = normal;          // normala na pogodjeni objekt
             hit_point = ray.origin + ray.direction * dist; // pogodjena tocka
+            
         }
     }
     //cout << best_dist << endl;
@@ -169,7 +168,7 @@ void draw_image(Objects objs, Lights lights)
     }
     
     // snimi sliku na disk
-    save_image(img, width, height, "./render.ppm");
+    save_image(img, width, height, "./render2.ppm");
 }
 
 int main()
@@ -182,23 +181,30 @@ int main()
     Material green(Vec3f(0, 0.5, 0));
     green.specular_coef = 1;
     green.phong_exp = 1000;
+
     Material blue(Vec3f(0, 0, 1));
+    blue.specular_coef = 1;
+
     Material grey(Vec3f(0.5, 0.5, 0.5));
+    grey.specular_coef = 1;
+
+    Material purple({1, 0, 1});
+    purple.specular_coef = 1;
     
     // definiraj svjetla
     Light l1 = Light(Vec3f(-20, 20, 20), 1500);
     Light l2 = Light(Vec3f(20, 30, 20), 1800);
     Lights lights = { &l1, &l2 };
 
-    //Cuboid surface(Vec3f(-25, -5.1, -30), Vec3f(25, -5, -9), green);
-
-    //Sphere sphere1(Vec3f(-1.0, -3.5, -12), 1.5, green);
-    //Sphere sphere2(Vec3f(3, -4.5, -11.5), 0.5, blue);
-    //Sphere sphere3(Vec3f(-2.0, -4.5, -18.5), 3.0, blue);
-    Cuboid cuboid(Vec3f(1, -5, -15), Vec3f(3, -3, -13), red);
+    Sphere sphere1({-1.5, -3.0, -12}, 1.5, green);
+    Sphere sphere2({3, -4.0, -9}, 0.5, blue);
+    Sphere sphere3({-4.0, -2.5, -18.5}, 2.0, purple);
+    Cuboid cuboid({1, -4.5, -15}, {4, -1.5, -12}, red);
+    Cuboid surface(Vec3f(-30, -5.0, -30), Vec3f(30, -4.5, 9), grey);
 
     //Objects objs {&sphere1, &sphere2, &sphere3,  &cuboid};
-    Objects objs {&cuboid};
+    //Objects objs {&cuboid, &sphere1, &sphere2, &sphere3, &surface};
+    Objects objs{&cuboid, &sphere1, &sphere2, &sphere3, &surface};
 
     draw_image(objs, lights);
     return 0;
