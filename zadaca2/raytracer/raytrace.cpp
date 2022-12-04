@@ -59,12 +59,11 @@ bool scene_intersect(const Ray &ray, const Objects &objs, Material &hit_material
 // funkcija koja vraca boju
 Vec3f cast_ray(const Ray &ray, const Objects &objs, const Lights &lights, unsigned rec_depth = 0)
 {
-    if(rec_depth > 5) return {0,0,0};
     Vec3f hit_normal;
     Vec3f hit_point;
     Material hit_material;
     //ako sa zrakom bas potpuno promasimo
-    if (!scene_intersect(ray, objs, hit_material, hit_point, hit_normal))
+    if (!scene_intersect(ray, objs, hit_material, hit_point, hit_normal) || rec_depth > 5)
     {
         return Vec3f(0.8, 0.8, 1); // vrati boju pozadine
     }
@@ -74,6 +73,9 @@ Vec3f cast_ray(const Ray &ray, const Objects &objs, const Lights &lights, unsign
         float specular_light_intensity = 0;
         Vec3f refl_vector{0,0,0};
         Vec3f refr_vector{0,0,0};
+        Ray refr_ray;
+        Ray refl_ray;
+        bool refr_init = false, refl_init = false;
         for (auto light : lights) 
         {           
             Vec3f light_dir = (light->position - hit_point).normalize();
@@ -100,7 +102,6 @@ Vec3f cast_ray(const Ray &ray, const Objects &objs, const Lights &lights, unsign
                 shadow_origin = hit_point + hit_normal * 0.001;
             }
             Ray shadow_ray(shadow_origin, light_dir);
-            
             // provjeri hoce li zraka shadow_ray presijecati objekt
             if (scene_intersect(shadow_ray, objs, shadow_hit_material, shadow_hit_point, shadow_hit_normal))
             {
@@ -129,26 +130,32 @@ Vec3f cast_ray(const Ray &ray, const Objects &objs, const Lights &lights, unsign
 
             ////refleksije
             if(hit_material.mirroring_intensity > 0.0f){
+                refl_init = true;
                 Vec3f r = hit_normal * (ray.direction * hit_normal) * (-2);
                 r = r + ray.direction;
-                Ray refl_ray(hit_point + hit_normal * 0.01, r);
-                refl_vector = cast_ray(refl_ray, objs, lights ,rec_depth + 1);
+                refl_ray = Ray(hit_point + hit_normal * 0.01, r);
             }
 
             //refrakcije
-            if(hit_material.opacity < 1.0f){
+            {
+                refr_init = true;
                 float cosi = hit_normal * ray.direction;
                 Vec3f r = (ray.direction * hit_material.refr_coef - hit_normal * (-cosi + hit_material.refr_coef * cosi));
-                Ray refr_ray(hit_point + hit_normal * 0.001, r);
-                refr_vector = cast_ray(refr_ray, objs, lights, rec_depth+1);
+                refr_ray = Ray(hit_point + hit_normal * 0.001, r);
             }
             
         }
-        
         Vec3f diffuse_color = diffuse_light_intensity * hit_material.diffuse_color;
         Vec3f spec_color = specular_light_intensity * Vec3f{1,1,1};
-        Vec3f hit_color = hit_material.opacity * (diffuse_color + spec_color + hit_material.mirroring_intensity * refl_vector) + refr_vector * (1.0f-hit_material.opacity);
-        return hit_color;
+        Vec3f hit_color = diffuse_color + spec_color;
+        if(refl_init == true) {
+            refl_vector = cast_ray(refl_ray, objs, lights, rec_depth + 1);
+        }
+        if(refr_init == true) {
+            refr_vector = cast_ray(refl_ray, objs, lights, rec_depth + 1);
+        }
+        return (hit_material.opacity * ((1-hit_material.mirroring_intensity) * hit_color + hit_material.mirroring_intensity * refl_vector)) + 
+        ((1-hit_material.opacity) * refr_vector);
     }
 }
 
@@ -194,22 +201,23 @@ void draw_image(Objects objs, Lights lights)
     }
     
     // snimi sliku na disk
-    save_image(img, width, height, "./render_refractive2.ppm");
+    save_image(img, width, height, "./render_relective.ppm");
 }
 
 int main()
 {
     // definiraj materijale
     Material red(Vec3f(1.0F, 0, 0));
-    red.spec_coef = 0.7;
+    red.spec_coef = 1.0F;
     red.phong_exp = 10;
-    red.mirroring_intensity = 0.3f;
+    red.mirroring_intensity = 0.5f;
+    //red.opacity = 0.5f;
     
     Material green(Vec3f(0, 0.5, 0));
     green.spec_coef = 1;
     green.phong_exp = 100;
-    green.mirroring_intensity = 0.4f;
-    green.opacity = 0.6f;
+    green.mirroring_intensity = 0.6f;
+    green.opacity = 1.0f;
 
     Material blue(Vec3f(0, 0, 1));
     blue.spec_coef = 0;
