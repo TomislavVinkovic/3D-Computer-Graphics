@@ -9,5 +9,5 @@ class Ray
     Ray(const Vec3f &e, const Vec3f &d) : origin(e), direction(d) {} 
     
     Vec3f origin; 
-    Vec3f direction; 
+    Vec3f direction;
 }; 

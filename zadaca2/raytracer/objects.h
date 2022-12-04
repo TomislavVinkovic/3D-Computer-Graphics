@@ -139,6 +139,7 @@ struct Cuboid : public Object {
         Vec3f hit_point = p + d*t;
         
         //racunanje normala
+        /*
         const float bias = 1.00001f;
         Vec3f c = {
             (min.x + max.x) / 2.0f,
@@ -160,7 +161,28 @@ struct Cuboid : public Object {
             static_cast<float>(nz)
         };
         normal.normalize();
+        */
        
+       const float eps = 0.01;    
+        if(abs(hit_point.x - min.x) < eps) {
+        normal = Vec3f(-1, 0, 0);
+        }
+        else if(abs(hit_point.x - max.x) < eps) {
+        normal = Vec3f(1, 0, 0);
+        }
+        else if(abs(hit_point.y - min.y) < eps) {
+        normal = Vec3f(0, -1, 0);
+        }
+        else if(abs(hit_point.y - max.y) < eps) {
+        normal = Vec3f(0, 1, 0);
+        }
+        else if(abs(hit_point.z - min.z) < eps) {
+        normal = Vec3f(0, 0, -1);
+        }
+        else if(abs(hit_point.z - max.z) < eps) {
+        normal = Vec3f(0, 0, 1);
+        }
+        
         return true;
     }
 };

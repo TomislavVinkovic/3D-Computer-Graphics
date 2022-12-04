@@ -57,12 +57,12 @@ bool scene_intersect(const Ray &ray, const Objects &objs, Material &hit_material
 }
 
 // funkcija koja vraca boju
-Vec3f cast_ray(const Ray &ray, const Objects &objs, const Lights &lights)
+Vec3f cast_ray(const Ray &ray, const Objects &objs, const Lights &lights, unsigned rec_depth = 0)
 {
+    if(rec_depth > 5) return {0,0,0};
     Vec3f hit_normal;
     Vec3f hit_point;
     Material hit_material;
-    
     //ako sa zrakom bas potpuno promasimo
     if (!scene_intersect(ray, objs, hit_material, hit_point, hit_normal))
     {
@@ -71,7 +71,9 @@ Vec3f cast_ray(const Ray &ray, const Objects &objs, const Lights &lights)
     else
     {
         float diffuse_light_intensity = 0;
-        
+        float specular_light_intensity = 0;
+        Vec3f refl_vector{0,0,0};
+        Vec3f refr_vector{0,0,0};
         for (auto light : lights) 
         {           
             Vec3f light_dir = (light->position - hit_point).normalize();
@@ -112,17 +114,41 @@ Vec3f cast_ray(const Ray &ray, const Objects &objs, const Lights &lights)
                     continue;
                 }
             }
-            
+            //if zraka sjene p + sl nema sjeciste s nijednim objektom na sceni
             // I / r^2
             float dist_factor = light->intensity / (light_dist * light_dist);
-            
             // difuzno sjenacanje (Lambertov model)
             diffuse_light_intensity +=  hit_material.diffuse_coef * dist_factor * max(0.f, hit_normal * light_dir);
+
+            //spekularno sjencanje(Blinn-Phongov model)
+
+            //izracunaj poluvektor za blinn-phonga
+            Vec3f view_direction = (ray.origin - hit_point).normalize();
+            Vec3f h = (view_direction + light_dir).normalize();
+            specular_light_intensity += hit_material.spec_coef * dist_factor * powf(max(0.0f, hit_normal * h), hit_material.phong_exp);
+
+            ////refleksije
+            if(hit_material.mirroring_intensity > 0.0f){
+                Vec3f r = hit_normal * (ray.direction * hit_normal) * (-2);
+                r = r + ray.direction;
+                Ray refl_ray(hit_point + hit_normal * 0.01, r);
+                refl_vector = cast_ray(refl_ray, objs, lights ,rec_depth + 1);
+            }
+
+            //refrakcije
+            if(hit_material.opacity < 1.0f){
+                float cosi = hit_normal * ray.direction;
+                Vec3f r = (ray.direction * hit_material.refr_coef - hit_normal * (-cosi + hit_material.refr_coef * cosi));
+                Ray refr_ray(hit_point + hit_normal * 0.001, r);
+                refr_vector = cast_ray(refr_ray, objs, lights, rec_depth+1);
+            }
+            
         }
         
-        Vec3f diffuse_color = hit_material.diffuse_color * diffuse_light_intensity;
-       
-        return diffuse_color; 
+        Vec3f diffuse_color = diffuse_light_intensity * hit_material.diffuse_color;
+        Vec3f spec_color = specular_light_intensity * Vec3f{1,1,1};
+        Vec3f hit_color = hit_material.opacity * (diffuse_color + spec_color + hit_material.mirroring_intensity * refl_vector) + refr_vector * (1.0f-hit_material.opacity);
+        return hit_color;
     }
 }
 
@@ -168,28 +194,38 @@ void draw_image(Objects objs, Lights lights)
     }
     
     // snimi sliku na disk
-    save_image(img, width, height, "./render2.ppm");
+    save_image(img, width, height, "./render_refractive2.ppm");
 }
 
 int main()
 {
     // definiraj materijale
-    Material red(Vec3f(1, 0, 0));
-    red.specular_coef = 1;
-    red.phong_exp = 50;
+    Material red(Vec3f(1.0F, 0, 0));
+    red.spec_coef = 0.7;
+    red.phong_exp = 10;
+    red.mirroring_intensity = 0.3f;
     
     Material green(Vec3f(0, 0.5, 0));
-    green.specular_coef = 1;
-    green.phong_exp = 1000;
+    green.spec_coef = 1;
+    green.phong_exp = 100;
+    green.mirroring_intensity = 0.4f;
+    green.opacity = 0.6f;
 
     Material blue(Vec3f(0, 0, 1));
-    blue.specular_coef = 1;
+    blue.spec_coef = 0;
+    blue.phong_exp = 1;
+    blue.mirroring_intensity = 0.5;
 
-    Material grey(Vec3f(0.5, 0.5, 0.5));
-    grey.specular_coef = 1;
+    Material grey(Vec3f(0.4f, 0.4f, 0.4f));
+    grey.phong_exp = 10;
+    grey.mirroring_intensity = 0.4;
+    grey.spec_coef = 0.7;
 
-    Material purple({1, 0, 1});
-    purple.specular_coef = 1;
+    Material purple({0.5, 0, 1});
+    purple.phong_exp = 70.0f;
+    purple.spec_coef = 1;
+    purple.refr_coef = 1.037;
+    //purple.opacity = 0.3f;
     
     // definiraj svjetla
     Light l1 = Light(Vec3f(-20, 20, 20), 1500);
@@ -207,5 +243,6 @@ int main()
     Objects objs{&cuboid, &sphere1, &sphere2, &sphere3, &surface};
 
     draw_image(objs, lights);
+    return 0;
     return 0;
 }

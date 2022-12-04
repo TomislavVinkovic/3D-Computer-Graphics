@@ -87,6 +87,12 @@ template<size_t DIM,typename T,typename U> vec<DIM,T> operator*(const vec<DIM,T>
     for (size_t i=DIM; i--; ret[i]=lhs[i]*rhs);
     return ret;
 }
+// implementacija produkta po kompoenentama - obrnuto
+template<size_t DIM,typename T,typename U> vec<DIM,T> operator*(const U& rhs, const vec<DIM,T> &lhs) {
+    vec<DIM,T> ret;
+    for (size_t i=DIM; i--; ret[i]=lhs[i]*rhs);
+    return ret;
+}
 // implementacija oduzimanja vektora lhs
 template<size_t DIM,typename T> vec<DIM,T> operator-(const vec<DIM,T> &lhs) {
     return lhs*T(-1);
