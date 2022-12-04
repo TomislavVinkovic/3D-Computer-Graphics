@@ -140,7 +140,8 @@ Vec3f cast_ray(const Ray &ray, const Objects &objs, const Lights &lights, unsign
             {
                 refr_init = true;
                 float cosi = hit_normal * ray.direction;
-                Vec3f r = (ray.direction * hit_material.refr_coef - hit_normal * (-cosi + hit_material.refr_coef * cosi));
+                float eta = 2.0f - hit_material.refr_coef;
+                Vec3f r = (ray.direction * eta - hit_normal * (-cosi + eta * cosi));
                 refr_ray = Ray(hit_point + hit_normal * 0.001, r);
             }
             
@@ -210,8 +211,8 @@ int main()
     Material red(Vec3f(1.0F, 0, 0));
     red.spec_coef = 1.0F;
     red.phong_exp = 10;
-    red.mirroring_intensity = 0.5f;
-    //red.opacity = 0.5f;
+    red.mirroring_intensity = 0.3f;
+    red.opacity = 0.5f;
     
     Material green(Vec3f(0, 0.5, 0));
     green.spec_coef = 1;
@@ -243,7 +244,7 @@ int main()
     Sphere sphere1({-1.5, -3.0, -12}, 1.5, green);
     Sphere sphere2({3, -4.0, -9}, 0.5, blue);
     Sphere sphere3({-4.0, -2.5, -18.5}, 2.0, purple);
-    Cuboid cuboid({1, -4.5, -15}, {4, -1.5, -12}, red);
+    Cuboid cuboid({3, -4.5, -22}, {8, 3.5, -12}, red);
     Cuboid surface(Vec3f(-30, -5.0, -30), Vec3f(30, -4.5, 9), grey);
 
     //Objects objs {&sphere1, &sphere2, &sphere3,  &cuboid};
