@@ -14,6 +14,30 @@ const TGAColor red   = TGAColor(255, 0, 0, 255);
 const TGAColor blue  = TGAColor(0, 0, 255, 255);
 const TGAColor green  = TGAColor(0, 255, 0, 255);
 
+TGAColor operator*(float c, const TGAColor& color) {
+    return TGAColor(c * color.r, c * color.g, c * color.b, c * color.a);
+}
+
+TGAColor operator+(const TGAColor& c1, const TGAColor& c2) {
+    float a0 = static_cast<float>(c1.a) / 255;
+    float r0 = static_cast<float>(c1.r) / 255;
+    float g0 = static_cast<float>(c1.g) / 255;
+    float b0 = static_cast<float>(c1.b) / 255;
+
+    float a1 = static_cast<float>(c2.a) / 255;
+    float r1 = static_cast<float>(c2.r) / 255;
+    float g1 = static_cast<float>(c2.g) / 255;
+    float b1 = static_cast<float>(c2.b) / 255;
+
+    float a01 = (1.0f-a0) * a1 + a0;
+    return TGAColor(
+        static_cast<unsigned char> (floor( ((1.0f - a0) * a1*r1 + a0 * r0) / a01 * 255) ),
+        static_cast<unsigned char> (floor( ((1.0f - a0) * a1*g1 + a0 * g0) / a01 * 255)),
+        static_cast<unsigned char> (floor( ((1.0f - a0) * a1*b1 + a0 * b0) / a01 * 255) ),
+        static_cast<unsigned char> (floor(a01 * 255))
+    );
+}
+
 void set_color(int x, int y, TGAImage &image, TGAColor color, bool invert = false)
 {
     image.set(y, x, color);    
@@ -69,7 +93,7 @@ void draw_triangle_2d(TGAImage& image, float x0, float y0, float x1, float y1, f
     }
 }
 
-void draw_triangle_2d_gouraurd(TGAImage& image, float x0, float y0, float z0, float x1, float y1, float z1, float x2, float y2, float z2, TGAColor color)
+void draw_triangle_2d_gouraurd(TGAImage& image, float x0, float y0, float x1, float y1, float x2, float y2, TGAColor c0, TGAColor c1, TGAColor c2)
 {
     float xmin = floor(min(x0, min(x1, x2)));
     float xmax = ceil(max(x0, max(x1, x2)));
@@ -106,7 +130,7 @@ void draw_triangle_2d_gouraurd(TGAImage& image, float x0, float y0, float z0, fl
                     (beta > 0 || f2011 * f20q >= 0) &&
                     (gamma > 0 || f0122 * f01q >= 0)
                 ) {
-                    set_color(x, y, image, color);
+                    set_color(x, y, image, (alpha * c0) + (beta * c1) + (gamma * c2));
                 }
 
             }
@@ -132,7 +156,7 @@ int main()
     draw_triangle_2d(image, 20, 30, 180, 80, 100, 200, blue);
     draw_triangle_2d(image, 20, 200, 180, 250, 100, 370, red);
 
-    //draw_triangle_2d_gouraurd(image, 20, 30, 180, 80, 100, 200, white);
+    draw_triangle_2d_gouraurd(image, 300, 200, 500, 400, 100, 400, red, green, blue);
 
     // spremi sliku 
     image.flip_vertically();
