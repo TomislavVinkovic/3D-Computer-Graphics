@@ -27,10 +27,10 @@ static const float farPlane = 1000;
 static float t,b,l,r;
 
 const Matrix4x4f camera = {
-    vector<float>{1.f, -1.f, 0.f, 0.f},
+    vector<float>{1.f, 0.f, 0.f, 0.f},
     vector<float>{0.f, 1.f, 0.f, 0.f},
-    vector<float>{-1.f, -1.f, 1.f, 0.f},
-    vector<float>{0.f, -1.f, -20.f, 1.f}
+    vector<float>{0.f, 0.f, 1.f, 0.f},
+    vector<float>{0.f, 0.f, 0.f, 1.f}
 };
 
 void set_color(int x, int y, TGAImage &image, TGAColor color, bool invert = false)
@@ -141,7 +141,13 @@ void draw_triangle_2d_gouraurd(TGAImage& image, float x0, float y0, float x1, fl
 
 //crtanje trokuta u 3d
 void draw_triangle(TGAImage& image, float x0, float y0, float z0, float x1, float y1, float z1,  float x2, float y2, float z2, TGAColor color, float* zBuffer) {
-    Vec3f p0{
+    
+    //matrica kamere izrazena preko 3 vektora
+    Vec3f c2{1, 0, 0};
+    Vec3f c1{0, 1, 0};
+    Vec3f c0{0, 0, 1};
+    
+    Vec3f p2{
         x0, 
         y0, 
         z0
@@ -151,119 +157,71 @@ void draw_triangle(TGAImage& image, float x0, float y0, float z0, float x1, floa
         y1, 
         z1
     };
-    Vec3f p2{
+    Vec3f p0{
         x2, 
         y2, 
         z2
     };
-
-    Vec3f pCam0;
-    Vec3f pCam1;
-    Vec3f pCam2;
-
-    vector<Vec3f> camVecs{pCam0, pCam1, pCam2};
-
-    //prebacivanje u prostor kamere
-    camera.multVecMatrix(p0, camVecs[0]);
-    camera.multVecMatrix(p1, camVecs[1]);
-    camera.multVecMatrix(p2, camVecs[2]);
-
-    vector<Vec3f> rasterVecs;
-
-    for (auto& e : camVecs)
-    {
-        //prebacivanje u prostor ekrana
-        Vec2f ps;
-        ps.x = nearPlane * e.x / -e.z;
-        ps.y = nearPlane * e.y / -e.z;
-
-        //preslikavanje vertexa u kanonski pogled
-        Vec2f pNDC;
-        pNDC.x = 2 * ps.x / (r - l) - (r + l) / (r - l);
-        pNDC.y = 2 * ps.y / (t - b) - (t + b) / (t - b);
-
-        //rasteriziran trokut
-        Vec3f pRaster;
-        pRaster.x = (pNDC.x + 1) / 2 * width;
-        pRaster.y = (1 - pNDC.y) / 2 * height;
-        pRaster.z = -e.z;
-
-        rasterVecs.push_back(pRaster);
-    }
-    //CRTANJE TROKUTA
-    //prebacivanje koordinata trokuta u raster space
-    Vec3f& v0Raster = rasterVecs[0];
-    Vec3f& v1Raster = rasterVecs[1];
-    Vec3f& v2Raster = rasterVecs[2];
-
-    v0Raster.z = 1 / v0Raster.z;
-    v1Raster.z = 1 / v1Raster.z;
-    v2Raster.z = 1 / v2Raster.z;
-
-    float xmin = floor(min(x0, min(x1, x2)));
-    float xmax = ceil(max(x0, max(x1, x2)));
     
-    float ymin = floor(min(y0, min(y1, y2)));
-    float ymax = ceil(max(y0, max(y1, y2)));
-
-    if (xmin > width - 1 || xmax < 0 || ymin > height - 1 || ymax < 0) {
-        return;
-    }
-
-    //boundamo xmin i ymin u prostor ekrana
-    uint32_t xMinBound = max(0, (int)floor(xmin));
-    uint32_t xMaxBound = min(int(width) - 1, (int)floor(xmax));
-    uint32_t yMinBound = max(0, (int)floor(ymin));
-    uint32_t yMaxBound = min(int(height) - 1, (int)floor(ymax));
-
-    float P = fac3D(v0Raster.x, v1Raster, v2Raster);
+    p0.x /= p0.z;
+    p0.y /= p0.z;
     
+    p1.x /= p1.z;
+    p1.y /= p1.z;
 
-    for(uint32_t y = yMinBound; y <= yMaxBound; y++) {
-        for(uint32_t x = xMinBound; x <= xMaxBound; x++) {
-            float p_x = x + 0.5f;
-            float p_y = y + 0.5f;
+    p2.x /= p2.z;
+    p2.y /= p2.z;
 
-            Vec3f bary_vec(p_x, p_y, 0);
+    //konverzija iz prostora ekrana u raster prostor i odmah u NDC (normalni) prostor;
+    p0.x = (1 + p0.x) * 0.5 * width;
+    p0.y = (1 + p0.y) * 0.5 * height;
 
-            float w0 = abs(fac3D(v1Raster, v2Raster, bary_vec));
-            float w1 = abs(fac3D(v2Raster, v0Raster, bary_vec));
-            float w2 = abs(fac3D(v0Raster, v1Raster, bary_vec));
+    p1.x = (1 + p1.x) * 0.5 * width;
+    p1.y = (1 + p1.y) * 0.5 * height;
 
-            //cout << w2 << endl;
-            if(w0 >= 0 && w1 >= 0 && w2 >= 0) {
-                
-                w0 /= P;
-                w1 /= P;
-                w2 /= P;
+    p2.x = (1 + p2.x) * 0.5 * width;
+    p2.y = (1 + p2.y) * 0.5 * height;
 
-                float oneOverZ = v0Raster.z * w0 + v1Raster.z * w1 + v2Raster.z * w2;
-                float z = 1/t;
+    //
+    /*
+        c0[0] /= v0[2], c0[1] /= v0[2], c0[2] /= v0[2]; 
+        c1[0] /= v1[2], c1[1] /= v1[2], c1[2] /= v1[2]; 
+        c2[0] /= v2[2], c2[1] /= v2[2], c2[2] /= v2[2]; 
+        // pre-compute 1 over z
+        v0[2] = 1 / v0[2], v1[2] = 1 / v1[2], v2[2] = 1 / v2[2]; 
 
-                if(z < zBuffer[y * width + x]) {
-                    zBuffer[y * width + x] = z;
-                }
-                
-                //prebacivanje kompletne slike u prostor kamere
-                Vec3f v0Cam, v1Cam, v2Cam;
-                camera.multVecMatrix(v0Raster, v0Cam);
-                camera.multVecMatrix(v1Raster, v1Cam);
-                camera.multVecMatrix(v2Raster, v2Cam);
+    */
 
-                float px = (v0Cam.x/-v0Cam.z) * w0 + (v1Cam.x/-v1Cam.z) * w1 + (v2Cam.x/-v2Cam.z) * w2; 
-                float py = (v0Cam.y/-v0Cam.z) * w0 + (v1Cam.y/-v1Cam.z) * w1 + (v2Cam.y/-v2Cam.z) * w2; 
-                Vec3f pt(px * z, py * z, -z);  //pt je sad u prostoru kamere
+   //transformacija kamere, trebat cu je nesto kasnije za lijepljenje teksture
+   c0.x /= p0.z; c0.y /= p0.z; c0.y /= c0.z;
+   c1.x /= p1.z; c1.y /= p1.z; c1.y /= c1.z;
+   c2.x /= p2.z; c2.y /= p2.z; c2.y /= c2.z;
 
-                //racunanje normale
-                Vec3f normal = (v1Cam - v0Cam).crossProduct(v2Cam - v0Cam);
-                normal.normalize();
-                Vec3f direction = -pt;
-                direction.normalize();
-                image.set(x, y, color);
+   //'one over z'
+   p0.z = 1 / p0.z;
+   p1.z = 1 / p1.z;
+   p2.z = 1 / p2.z;
 
-            }
-        }
-    }
+   float area = fac3D(p0, p1, p2);
+   cout << area << endl;
+
+   for (uint32_t j = 0; j < height; ++j) { 
+        for (uint32_t i = 0; i < width; ++i) { 
+            Vec3f p(i + 0.5, height - j + 0.5, 0); 
+            float w0 = fac3D(p1, p2, p); 
+            float w1 = fac3D(p2, p0, p); 
+            float w2 = fac3D(p0, p1, p);
+
+            if (w0 >= 0 && w1 >= 0 && w2 >= 0) {
+                cout << w0 << " " << w1 << " " << w2 << endl;
+                w0 /= area; 
+                w1 /= area; 
+                w2 /= area; 
+
+                set_color(i, j, image, color);
+            } 
+        } 
+    } 
 
 }
 
@@ -301,7 +259,7 @@ int main()
     l = -r;
     b = -t;
 
-    draw_triangle(image, -1, 1, -1, -1, 1, 1, 0.999999, 1, 1, blue, zBuffer);
+    draw_triangle(image, -48, -10,  82, 29, -15,  44, 13,  34, 114, blue, zBuffer);
     //draw_triangle(image, 20, 30, 0, 180, 80, 0, 100, 200, 0, blue, zBuffer);
 
     // spremi sliku 

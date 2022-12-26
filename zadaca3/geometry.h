@@ -192,6 +192,11 @@ public:
         cout << endl;
         }
     }
+
+    template<typename S>
+    S* at(unsigned i, unsigned j) {
+        return &matrix[i][j];
+    }
 };
 
 typedef Matrix4x4<float> Matrix4x4f;
