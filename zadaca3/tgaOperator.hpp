@@ -1,5 +1,7 @@
 #pragma once
 
+//operatori koje sam definirao kako bih mogao interpolirati boje
+
 #include "tgaimage.h"
 #include<cmath>
 #include<algorithm>

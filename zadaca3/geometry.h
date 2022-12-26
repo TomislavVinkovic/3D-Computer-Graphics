@@ -3,6 +3,8 @@
 #include<algorithm>
 #include<iostream>
 
+//uzeo sam geometriju iz raytracera koja mi je olaksala neke od zadataka
+
 using namespace std;
 
 template <typename T>
@@ -136,67 +138,3 @@ public:
 
 typedef Vec3<float> Vec3f;
 typedef Vec3<int> Vec3i;
-
-template <typename T>
-class Matrix4x4
-{
-private:
-    T matrix[4][4] = {
-        {0, 0, 0, 0},
-        {0, 0, 0, 0},
-        {0, 0, 0, 0},
-        {0, 0, 0, 0}
-    };
-
-public:
-    Matrix4x4(vector<T> &&r1, vector<T> &&r2, vector<T> &&r3, vector<T> &&r4)
-    {
-        for (int i = 0; i < 4; i++)
-        {
-            matrix[0][i] = r1[i];
-        }
-        for (int i = 0; i < 4; i++)
-        {
-            matrix[1][i] = r2[i];
-        }
-        for (int i = 0; i < 4; i++)
-        {
-            matrix[2][i] = r3[i];
-        }
-        for (int i = 0; i < 4; i++)
-        {
-            matrix[3][i] = r4[i];
-        }
-    }
-
-    template <typename S>
-    void multVecMatrix(const Vec3<S> &src, Vec3<S> &dst) const
-    {
-        S a, b, c, w;
-
-        a = src[0] * matrix[0][0] + src[1] * matrix[1][0] + src[2] * matrix[2][0] + matrix[3][0];
-        b = src[0] * matrix[0][1] + src[1] * matrix[1][1] + src[2] * matrix[2][1] + matrix[3][1];
-        c = src[0] * matrix[0][2] + src[1] * matrix[1][2] + src[2] * matrix[2][2] + matrix[3][2];
-        w = src[0] * matrix[0][3] + src[1] * matrix[1][3] + src[2] * matrix[2][3] + matrix[3][3];
-
-        dst.x = a / w;
-        dst.y = b / w;
-        dst.z = c / w;
-    }
-
-    void print() const {
-        for(int i = 0; i < 4; i++) {
-            for(int j = 0; j < 4; j++) {
-                cout << matrix[i][j] << " ";
-            }
-        cout << endl;
-        }
-    }
-
-    template<typename S>
-    S* at(unsigned i, unsigned j) {
-        return &matrix[i][j];
-    }
-};
-
-typedef Matrix4x4<float> Matrix4x4f;

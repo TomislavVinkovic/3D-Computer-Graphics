@@ -9,29 +9,14 @@
 using namespace std;
 
 // dimenzije slike
-const int width  = 512;
-const int height = 512;
+const static int width  = 512;
+const static int height = 512;
 
 // definirajmo boje
 const TGAColor white = TGAColor(255, 255, 255, 255);
 const TGAColor red   = TGAColor(255, 0, 0, 255);
 const TGAColor blue  = TGAColor(0, 0, 255, 255);
 const TGAColor green  = TGAColor(0, 255, 0, 255);
-
-
-//konstante koje trebamo za 3d transformaciju
-static const float FOV = 45;
-static const float nearPlane = 1;
-static const float farPlane = 1000;
-
-static float t,b,l,r;
-
-const Matrix4x4f camera = {
-    vector<float>{1.f, 0.f, 0.f, 0.f},
-    vector<float>{0.f, 1.f, 0.f, 0.f},
-    vector<float>{0.f, 0.f, 1.f, 0.f},
-    vector<float>{0.f, 0.f, 0.f, 1.f}
-};
 
 void set_color(int x, int y, TGAImage &image, TGAColor color, bool invert = false)
 {
@@ -130,7 +115,7 @@ void draw_triangle_2d_gouraurd(TGAImage& image, float x0, float y0, float x1, fl
                     (gamma > 0 || f0122 * f01q >= 0)
                 ) {
                     TGAColor c = (alpha * c0) + (beta * c1) + (gamma * c2);
-                    cout << (int)c.r << " " << (int)c.g << " " << (int)c.b << endl;
+                    //cout << (int)c.r << " " << (int)c.g << " " << (int)c.b << endl;
                     set_color(x, y, image, c);
                 }
 
@@ -141,11 +126,6 @@ void draw_triangle_2d_gouraurd(TGAImage& image, float x0, float y0, float x1, fl
 
 //crtanje trokuta u 3d
 void draw_triangle(TGAImage& image, float x0, float y0, float z0, float x1, float y1, float z1,  float x2, float y2, float z2, TGAColor color, float* zBuffer) {
-    
-    //matrica kamere izrazena preko 3 vektora
-    Vec3f c2{1, 0, 0};
-    Vec3f c1{0, 1, 0};
-    Vec3f c0{0, 0, 1};
     
     Vec3f p2{
         x0, 
@@ -182,21 +162,6 @@ void draw_triangle(TGAImage& image, float x0, float y0, float z0, float x1, floa
     p2.x = (1 + p2.x) * 0.5 * width;
     p2.y = (1 + p2.y) * 0.5 * height;
 
-    //
-    /*
-        c0[0] /= v0[2], c0[1] /= v0[2], c0[2] /= v0[2]; 
-        c1[0] /= v1[2], c1[1] /= v1[2], c1[2] /= v1[2]; 
-        c2[0] /= v2[2], c2[1] /= v2[2], c2[2] /= v2[2]; 
-        // pre-compute 1 over z
-        v0[2] = 1 / v0[2], v1[2] = 1 / v1[2], v2[2] = 1 / v2[2]; 
-
-    */
-
-   //transformacija kamere, trebat cu je nesto kasnije za lijepljenje teksture
-   c0.x /= p0.z; c0.y /= p0.z; c0.y /= c0.z;
-   c1.x /= p1.z; c1.y /= p1.z; c1.y /= c1.z;
-   c2.x /= p2.z; c2.y /= p2.z; c2.y /= c2.z;
-
    //'one over z'
    p0.z = 1 / p0.z;
    p1.z = 1 / p1.z;
@@ -213,7 +178,6 @@ void draw_triangle(TGAImage& image, float x0, float y0, float z0, float x1, floa
             float w2 = fac3D(p0, p1, p);
 
             if (w0 >= 0 && w1 >= 0 && w2 >= 0) {
-                cout << w0 << " " << w1 << " " << w2 << endl;
                 w0 /= area; 
                 w1 /= area; 
                 w2 /= area; 
@@ -228,11 +192,187 @@ void draw_triangle(TGAImage& image, float x0, float y0, float z0, float x1, floa
 void draw_triangle_tex(TGAImage& image, float x0, float y0, float z0, float x1, float y1, float z1, float x2, float y2, float z2, float u0, float v0, float u1, float v1, float u2, float v2, const char* path)
 {
     
+    TGAImage texture;
+    texture.read_tga_file(path);
+
+    //teksture
+    Vec2f uv2{
+        u0, v0
+    };
+
+    Vec2f uv1{
+        u1, v1
+    };
+
+    Vec2f uv0{
+        u2, v2
+    };
+
+    //tocke trokuta
+    Vec3f p2{
+        x0, 
+        y0, 
+        z0
+    };
+    Vec3f p1{
+        x1, 
+        y1, 
+        z1
+    };
+    Vec3f p0{
+        x2, 
+        y2, 
+        z2
+    };
+    
+    p0.x /= p0.z;
+    p0.y /= p0.z;
+    
+    p1.x /= p1.z;
+    p1.y /= p1.z;
+
+    p2.x /= p2.z;
+    p2.y /= p2.z;
+
+    //konverzija iz prostora ekrana u raster prostor i odmah u NDC (normalni) prostor;
+    p0.x = (1 + p0.x) * 0.5 * width;
+    p0.y = (1 + p0.y) * 0.5 * height;
+
+    p1.x = (1 + p1.x) * 0.5 * width;
+    p1.y = (1 + p1.y) * 0.5 * height;
+
+    p2.x = (1 + p2.x) * 0.5 * width;
+    p2.y = (1 + p2.y) * 0.5 * height;
+
+   float area = fac3D(p0, p1, p2);
+
+    for (uint32_t j = 0; j < height; ++j) { 
+        for (uint32_t i = 0; i < width; ++i) { 
+            Vec3f p(i + 0.5, height - j + 0.5, 0); 
+            float w0 = fac3D(p1, p2, p); 
+            float w1 = fac3D(p2, p0, p); 
+            float w2 = fac3D(p0, p1, p);
+
+            if (w0 >= 0 && w1 >= 0 && w2 >= 0) {
+                w0 /= area; 
+                w1 /= area; 
+                w2 /= area; 
+                
+                float u = round((w0 * uv0.x + w1 * uv1.x + w2 * uv2.x) * texture.get_width());
+                float v = round((w0 * uv0.y + w1 * uv1.y + w2 * uv2.y) * texture.get_height());
+
+                //cout << u << " " << v << endl;
+                TGAColor textureColor = texture.get(u, v);
+                //cout << textureColor.r << " " << textureColor.g << " " << textureColor.b << " " << textureColor.a << endl;
+
+                set_color(i, j, image, textureColor);
+            } 
+        } 
+    }
 }
 
-void draw_triangle_tex_corrected(TGAImage& image, float x0, float y0, float z0, float x1, float y1, float z1, float x2, float y2, float z2, float u0, float v0, float u1, float v1, float u2, float v2, const char* path)
-{
+void draw_triangle_tex_corrected(TGAImage& image, float x0, float y0, float z0, float x1, float y1, float z1, float x2, float y2, float z2, float u0, float v0, float u1, float v1, float u2, float v2, const char* path) {
+    TGAImage texture;
+    texture.read_tga_file(path);
     
+    //teksture
+    Vec2f uv2{
+        u0, v0
+    };
+
+    Vec2f uv1{
+        u1, v1
+    };
+
+    Vec2f uv0{
+        u2, v2
+    };
+
+    //matrica kamere izrazena preko 3 vektora
+    Vec3f c2{1, 0, 0};
+    Vec3f c1{0, 1, 0};
+    Vec3f c0{0, 0, 1};
+
+    Vec3f p2{
+        x0, 
+        y0, 
+        z0
+    };
+    Vec3f p1{
+        x1, 
+        y1, 
+        z1
+    };
+    Vec3f p0{
+        x2, 
+        y2, 
+        z2
+    };
+    
+    p0.x /= p0.z;
+    p0.y /= p0.z;
+    
+    p1.x /= p1.z;
+    p1.y /= p1.z;
+
+    p2.x /= p2.z;
+    p2.y /= p2.z;
+
+    //konverzija iz prostora ekrana u raster prostor i odmah u NDC (normalni) prostor;
+    p0.x = (1 + p0.x) * 0.5 * width;
+    p0.y = (1 + p0.y) * 0.5 * height;
+
+    p1.x = (1 + p1.x) * 0.5 * width;
+    p1.y = (1 + p1.y) * 0.5 * height;
+
+    p2.x = (1 + p2.x) * 0.5 * width;
+    p2.y = (1 + p2.y) * 0.5 * height;
+
+    //perspektivni fix, prvi dio
+    c0.x /= p0.z; c0.y /= p0.z; c0.y /= c0.z;
+    c1.x /= p1.z; c1.y /= p1.z; c1.y /= c1.z;
+    c2.x /= p2.z; c2.y /= p2.z; c2.y /= c2.z;
+
+    uv0.x /= p0.z; uv0.y /= p0.z;
+    uv1.x /= p1.z; uv1.y /= p1.z;
+    uv2.x /= p2.z; uv2.y /= p2.z;
+
+    //'one over z'
+    p0.z = 1 / p0.z;
+    p1.z = 1 / p1.z;
+    p2.z = 1 / p2.z;
+
+    float area = fac3D(p0, p1, p2);
+
+    for (uint32_t j = 0; j < height; ++j) { 
+        for (uint32_t i = 0; i < width; ++i) { 
+            Vec3f p(i + 0.5, height - j + 0.5, 0); 
+            float w0 = fac3D(p1, p2, p); 
+            float w1 = fac3D(p2, p0, p); 
+            float w2 = fac3D(p0, p1, p);
+
+            if (w0 >= 0 && w1 >= 0 && w2 >= 0) {
+                w0 /= area; 
+                w1 /= area; 
+                w2 /= area; 
+                
+                float u = (w0 * uv0.x + w1 * uv1.x + w2 * uv2.x);
+                float v = (w0 * uv0.y + w1 * uv1.y + w2 * uv2.y);
+
+                //perspektivni fix, drugi dio
+                float z = 1 / (w0 * p0[2] + w1 * p1[2] + w2 * p2[2]); 
+                u *= z, v *= z; 
+
+                u = round(u * texture.get_width());
+                v = round(v * texture.get_height());
+
+                TGAColor textureColor = texture.get(u, v);
+
+                set_color(i, j, image, textureColor);
+            } 
+        } 
+    }
+
 }
 
 int main()
@@ -245,26 +385,15 @@ int main()
     // draw_triangle_2d_gouraurd(image, 0, 0, 0, 512, 512, 512, red, green, blue);
 
     //kreacija 3d slike
-    float* zBuffer = new float[width * height];
-    for(int i = 0; i < width*height; i++) {
-        zBuffer[i] = farPlane;
-    }
 
-    //scale definiran preko fov-a
-    float scale = tan(FOV / 2.f);
-
-    //setup ravnina odrezivanja
-    r = nearPlane * scale;
-    t = nearPlane * scale;
-    l = -r;
-    b = -t;
-
-    draw_triangle(image, -48, -10,  82, 29, -15,  44, 13,  34, 114, blue, zBuffer);
+    //draw_triangle(image, -48, -10,  82, 29, -15,  44, 13,  34, 114, blue, zBuffer);
+    //draw_triangle_tex(image, -48, -10,  82, 29, -15,  44, 13,  34, 114, 0, 0, 1, 0, 0, 1, "./textures/cro.tga");
+    draw_triangle_tex_corrected(image, -48, -10,  82, 29, -15,  44, 13,  34, 114, 0, 0, 1, 0, 0, 1, "./textures/cro.tga");
     //draw_triangle(image, 20, 30, 0, 180, 80, 0, 100, 200, 0, blue, zBuffer);
 
     // spremi sliku 
     image.flip_vertically();
-    image.write_tga_file("zad2.tga");
+    image.write_tga_file("zad4_b.tga");
 
-    delete[] zBuffer;
+    return 0;
 }
