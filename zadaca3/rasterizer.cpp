@@ -40,6 +40,12 @@ void draw_triangle_2d(TGAImage& image, float x0, float y0, float x1, float y1, f
     float ymin = floor(min(y0, min(y1, y2)));
     float ymax = ceil(max(y0, max(y1, y2)));
 
+    xmin = floor(max(0.f, xmin));
+    xmax = ceil(min(xmax, (float)width-1));
+
+    ymin = floor(max(0.f, ymin));
+    ymax = ceil(min(ymax, (float)width-1));
+
     //kontrolna tocka van ekrrana
     float qX = -1, qY = -1;
 
@@ -85,6 +91,12 @@ void draw_triangle_2d_gouraurd(TGAImage& image, float x0, float y0, float x1, fl
     float ymin = floor(min(y0, min(y1, y2)));
     float ymax = ceil(max(y0, max(y1, y2)));
 
+    xmin = floor(max(0.f, xmin));
+    xmax = ceil(min(xmax, (float)width-1));
+
+    ymin = floor(max(0.f, ymin));
+    ymax = ceil(min(ymax, (float)width-1));
+
     //kontrolna tocka van ekrrana
     float qX = -1, qY = -1;
 
@@ -125,7 +137,7 @@ void draw_triangle_2d_gouraurd(TGAImage& image, float x0, float y0, float x1, fl
 }
 
 //crtanje trokuta u 3d
-void draw_triangle(TGAImage& image, float x0, float y0, float z0, float x1, float y1, float z1,  float x2, float y2, float z2, TGAColor color, float* zBuffer) {
+void draw_triangle(TGAImage& image, float x0, float y0, float z0, float x1, float y1, float z1,  float x2, float y2, float z2, TGAColor color) {
     
     Vec3f p2{
         x0, 
@@ -168,21 +180,20 @@ void draw_triangle(TGAImage& image, float x0, float y0, float z0, float x1, floa
    p2.z = 1 / p2.z;
 
    float area = fac3D(p0, p1, p2);
-   cout << area << endl;
 
-   for (uint32_t j = 0; j < height; ++j) { 
-        for (uint32_t i = 0; i < width; ++i) { 
-            Vec3f p(i + 0.5, height - j + 0.5, 0); 
+   for (uint32_t y = 0; y < height; y++) { 
+        for (uint32_t x = 0; x < width; x++) { 
+            Vec3f p(x + 0.5, height - y + 0.5, 0); 
             float w0 = fac3D(p1, p2, p); 
             float w1 = fac3D(p2, p0, p); 
             float w2 = fac3D(p0, p1, p);
 
             if (w0 >= 0 && w1 >= 0 && w2 >= 0) {
-                w0 /= area; 
+                w0 /= area;
                 w1 /= area; 
                 w2 /= area; 
 
-                set_color(i, j, image, color);
+                set_color(x, y, image, color);
             } 
         } 
     } 
@@ -244,11 +255,11 @@ void draw_triangle_tex(TGAImage& image, float x0, float y0, float z0, float x1, 
     p2.x = (1 + p2.x) * 0.5 * width;
     p2.y = (1 + p2.y) * 0.5 * height;
 
-   float area = fac3D(p0, p1, p2);
+    float area = fac3D(p0, p1, p2);
 
-    for (uint32_t j = 0; j < height; ++j) { 
-        for (uint32_t i = 0; i < width; ++i) { 
-            Vec3f p(i + 0.5, height - j + 0.5, 0); 
+    for (uint32_t y = 0; y < height; y++) { 
+        for (uint32_t x = 0; x < width; x++) { 
+            Vec3f p(x + 0.5, height - y + 0.5, 0); 
             float w0 = fac3D(p1, p2, p); 
             float w1 = fac3D(p2, p0, p); 
             float w2 = fac3D(p0, p1, p);
@@ -265,7 +276,7 @@ void draw_triangle_tex(TGAImage& image, float x0, float y0, float z0, float x1, 
                 TGAColor textureColor = texture.get(u, v);
                 //cout << textureColor.r << " " << textureColor.g << " " << textureColor.b << " " << textureColor.a << endl;
 
-                set_color(i, j, image, textureColor);
+                set_color(x, y, image, textureColor);
             } 
         } 
     }
@@ -344,9 +355,9 @@ void draw_triangle_tex_corrected(TGAImage& image, float x0, float y0, float z0, 
 
     float area = fac3D(p0, p1, p2);
 
-    for (uint32_t j = 0; j < height; ++j) { 
-        for (uint32_t i = 0; i < width; ++i) { 
-            Vec3f p(i + 0.5, height - j + 0.5, 0); 
+    for (uint32_t y = 0; y < height; y++) { 
+        for (uint32_t x = 0; x < width; x++) { 
+            Vec3f p(x + 0.5, height - y + 0.5, 0); 
             float w0 = fac3D(p1, p2, p); 
             float w1 = fac3D(p2, p0, p); 
             float w2 = fac3D(p0, p1, p);
@@ -368,7 +379,7 @@ void draw_triangle_tex_corrected(TGAImage& image, float x0, float y0, float z0, 
 
                 TGAColor textureColor = texture.get(u, v);
 
-                set_color(i, j, image, textureColor);
+                set_color(x, y, image, textureColor);
             } 
         } 
     }
@@ -380,20 +391,19 @@ int main()
     // definiraj sliku
     TGAImage image(width, height, TGAImage::RGB);
 
-    // draw_triangle_2d(image, 20, 30, 180, 80, 100, 200, blue);
-    // draw_triangle_2d(image, 20, 200, 180, 250, 100, 370, red);
-    // draw_triangle_2d_gouraurd(image, 0, 0, 0, 512, 512, 512, red, green, blue);
+    draw_triangle_2d(image, 20, 30, 180, 80, 100, 200, blue);
+    draw_triangle_2d(image, 20, 200, 180, 250, 100, 370, red);
+    draw_triangle_2d_gouraurd(image, 512, 512, 512, 256, 256, 256, red, green, blue);
 
     //kreacija 3d slike
 
-    //draw_triangle(image, -48, -10,  82, 29, -15,  44, 13,  34, 114, blue, zBuffer);
+    //draw_triangle(image, -48, -10,  82, 29, -15,  44, 13,  34, 114, blue);
     //draw_triangle_tex(image, -48, -10,  82, 29, -15,  44, 13,  34, 114, 0, 0, 1, 0, 0, 1, "./textures/cro.tga");
-    draw_triangle_tex_corrected(image, -48, -10,  82, 29, -15,  44, 13,  34, 114, 0, 0, 1, 0, 0, 1, "./textures/cro.tga");
-    //draw_triangle(image, 20, 30, 0, 180, 80, 0, 100, 200, 0, blue, zBuffer);
+    //draw_triangle_tex_corrected(image, -48, -10,  82, 29, -15,  44, 13,  34, 114, 0, 0, 1, 0, 0, 1, "./textures/cro.tga");
 
     // spremi sliku 
     image.flip_vertically();
-    image.write_tga_file("zad4_b.tga");
+    image.write_tga_file("zad1_2.tga");
 
     return 0;
 }
