@@ -5,7 +5,6 @@
 #include <cstdlib>
 #include "geometry.h"
 #include "tgaimage.h"
-#include "tgaOperator.hpp"
 using namespace std;
 
 // dimenzije slike
@@ -126,7 +125,7 @@ void draw_triangle_2d_gouraurd(TGAImage& image, float x0, float y0, float x1, fl
                     (beta > 0 || f2011 * f20q >= 0) &&
                     (gamma > 0 || f0122 * f01q >= 0)
                 ) {
-                    TGAColor c = (alpha * c0) + (beta * c1) + (gamma * c2);
+                    TGAColor c = TGAColor((alpha * c0.r + beta * c1.r + gamma * c2.r), (alpha * c0.g + beta * c1.g + gamma * c2.g), (alpha * c0.b + beta * c1.b + gamma * c2.b), 255);
                     //cout << (int)c.r << " " << (int)c.g << " " << (int)c.b << endl;
                     set_color(x, y, image, c);
                 }
