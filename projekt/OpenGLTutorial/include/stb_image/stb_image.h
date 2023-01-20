@@ -1,8 +1,0 @@
-//
-// Created by tomislav on 12/29/22.
-//
-
-#ifndef OPENGLTUTORIAL_STB_IMAGE_H
-#define OPENGLTUTORIAL_STB_IMAGE_H
-
-#endif //OPENGLTUTORIAL_STB_IMAGE_H
